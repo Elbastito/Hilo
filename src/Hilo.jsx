@@ -542,7 +542,7 @@ export default function Hilo() {
           )}
 
           {isDeleting && (
-            <div onClick={(e) => e.stopPropagation()}
+            <div onClick={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}
               style={{
                 position: "absolute", [index === 0 ? "bottom" : "top"]: index === 0 ? -48 : -48, right: 8,
                 background: T.bubble, borderRadius: 12,
@@ -736,7 +736,7 @@ export default function Hilo() {
               <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 14 }}>{viewingImage.name}</span>
               <br />
               <a href={viewingImage.data} download={viewingImage.name}
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}
                 style={{
                   display: "inline-block", marginTop: 12, padding: "10px 24px",
                   borderRadius: 10, background: T.accent, color: T.bg,
@@ -745,7 +745,7 @@ export default function Hilo() {
             </div>
           ) : (
             <img src={viewingImage.data} alt={viewingImage.name}
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}
               style={{ maxWidth: "92%", maxHeight: "90%", objectFit: "contain", borderRadius: 8 }} />
           )}
         </div>
