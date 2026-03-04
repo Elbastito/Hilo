@@ -169,7 +169,7 @@ export default function Hilo() {
     } else {
       setMessages(prev => [...prev, newMsg]);
     }
-    setInputText(""); setPendingFiles([]);
+    setInputText(""); setPendingFiles([]); if (inputRef.current) inputRef.current.style.height = "auto";
   };
 
   const handleKeyDown = (e) => {
@@ -634,7 +634,7 @@ export default function Hilo() {
       </div>
 
       {!isSelectingTarget && (
-        <div style={{ padding: "10px 12px env(safe-area-inset-bottom)", borderTop: `1px solid ${T.border}`, flexShrink: 0, background: T.bg }}>
+        <div style={{ padding: "10px 12px 10px", borderTop: `1px solid ${T.border}`, flexShrink: 0, background: T.bg }}>
           {(replyingTo || insertBeforeId) && (
             <div style={{
               display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8,
