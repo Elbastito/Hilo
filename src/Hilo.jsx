@@ -760,7 +760,7 @@ function ActionBtn({ icon, label, onClick, danger, color }) {
       style={{
         background: "transparent", border: "none", borderRadius: 8,
         width: 42, height: 38, display: "flex", alignItems: "center", justifyContent: "center",
-        cursor: "pointer", fontSize: icon === "×" ? 22 : 18,
+        cursor: "pointer", fontSize: icon === "×" ? 22 : icon === "⟶" ? 18 : 24,
         color: color || (danger ? T.danger : T.textSecondary),
         fontFamily: "'DM Mono', monospace",
         WebkitTapHighlightColor: "transparent",
