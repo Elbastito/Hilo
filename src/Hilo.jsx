@@ -566,7 +566,7 @@ export default function Hilo() {
       width: "100%", height: "100dvh", background: T.bg,
       display: "flex", flexDirection: "column", fontFamily: "'Crimson Pro', serif",
       overflow: "hidden",
-      paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)",
+      paddingTop: "env(safe-area-inset-top)", 
     }}>
       <div style={{
         padding: "14px 20px", borderBottom: `1px solid ${T.border}`,
@@ -634,7 +634,7 @@ export default function Hilo() {
       </div>
 
       {!isSelectingTarget && (
-        <div style={{ padding: "10px 12px 14px", borderTop: `1px solid ${T.border}`, flexShrink: 0, background: T.bg }}>
+        <div style={{ padding: "10px 12px calc(14px + env(safe-area-inset-bottom))", borderTop: `1px solid ${T.border}`, flexShrink: 0, background: T.bg }}>
           {(replyingTo || insertBeforeId) && (
             <div style={{
               display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8,
@@ -759,8 +759,8 @@ function ActionBtn({ icon, label, onClick, danger, color }) {
     <button onClick={onClick} title={label}
       style={{
         background: "transparent", border: "none", borderRadius: 8,
-        width: 34, height: 32, display: "flex", alignItems: "center", justifyContent: "center",
-        cursor: "pointer", fontSize: icon === "×" ? 18 : 14,
+        width: 42, height: 38, display: "flex", alignItems: "center", justifyContent: "center",
+        cursor: "pointer", fontSize: icon === "×" ? 22 : 18,
         color: color || (danger ? T.danger : T.textSecondary),
         fontFamily: "'DM Mono', monospace",
         WebkitTapHighlightColor: "transparent",
