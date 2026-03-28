@@ -35,12 +35,14 @@ export default function Hilo() {
   const [flashId, setFlashId] = useState(null);
   const [pendingFiles, setPendingFiles] = useState([]);
   const [viewingImage, setViewingImage] = useState(null);
+  const [showMenu, setShowMenu] = useState(false);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const listRef = useRef(null);
   const msgRefs = useRef({});
   const fileInputRef = useRef(null);
+  const importInputRef = useRef(null);
 
   useEffect(() => {
     if (!document.querySelector(`link[href="${FONT_LINK}"]`)) {
@@ -122,20 +124,18 @@ export default function Hilo() {
   }, [flashId]);
 
   useEffect(() => {
-    const handler = (e) => {
-      if (selectedMsg && !e.target.closest('[data-msg-actions]') && !e.target.closest('[data-msg-bubble]')) {
-        setSelectedMsg(null);
-      }
-      if (deleteConfirm) setDeleteConfirm(null);
+    const handler = () => {
+      setSelectedMsg(null);
+      setDeleteConfirm(null);
+      setShowMenu(false);
     };
     document.addEventListener("click", handler);
-    document.addEventListener("touchstart", handler);
-    return () => { document.removeEventListener("click", handler); document.removeEventListener("touchstart", handler); };
-  }, [selectedMsg, deleteConfirm]);
+    return () => document.removeEventListener("click", handler);
+  }, []);
 
   useEffect(() => {
     const handler = (e) => {
-      if (e.key === "Escape") { clearModes(); setDeleteConfirm(null); setSelectedMsg(null); }
+      if (e.key === "Escape") { clearModes(); setDeleteConfirm(null); setSelectedMsg(null); setShowMenu(false); }
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
@@ -169,7 +169,11 @@ export default function Hilo() {
     } else {
       setMessages(prev => [...prev, newMsg]);
     }
-    setInputText(""); setPendingFiles([]); if (inputRef.current) inputRef.current.style.height = "auto";
+    setInputText("");
+    setPendingFiles([]);
+    if (inputRef.current) {
+      inputRef.current.style.height = "auto";
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -212,11 +216,39 @@ export default function Hilo() {
 
   const removePendingFile = (fileId) => setPendingFiles(prev => prev.filter(f => f.id !== fileId));
 
+  const exportData = () => {
+    const d = JSON.stringify(messages, null, 2);
+    const b = new Blob([d], { type: "application/json" });
+    const u = URL.createObjectURL(b);
+    const a = document.createElement("a");
+    a.href = u; a.download = "hilo-backup-" + new Date().toISOString().slice(0,10) + ".json";
+    a.click(); URL.revokeObjectURL(u);
+    setShowMenu(false);
+  };
+
+  const importData = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        if (Array.isArray(data)) {
+          setMessages(data);
+          storage.set("hilo-messages", data);
+        }
+      } catch { alert("Archivo inválido"); }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+    setShowMenu(false);
+  };
+
   const getPreview = (id) => {
     const m = messages.find(x => x.id === id);
     if (!m) return "...";
     if (m.text) return m.text.length > 55 ? m.text.slice(0, 55) + "…" : m.text;
-    if (m.images?.length) return `📎 ${m.images.length} imagen${m.images.length > 1 ? "es" : ""}`;
+    if (m.images?.length) return "📎 " + m.images.length + " imagen" + (m.images.length > 1 ? "es" : "");
     return "...";
   };
 
@@ -339,7 +371,7 @@ export default function Hilo() {
             <button onClick={(e) => { e.stopPropagation(); startInsertBefore(msg.id); }}
               style={{
                 background: insertBeforeId === msg.id ? T.accentDim : "transparent",
-                border: `1px dashed ${insertBeforeId === msg.id ? T.accent : T.textMuted}`,
+                border: "1px dashed " + (insertBeforeId === msg.id ? T.accent : T.textMuted),
                 borderRadius: 20, color: insertBeforeId === msg.id ? T.accent : T.textMuted,
                 padding: "4px 16px", fontSize: 12, fontFamily: "'DM Mono', monospace",
                 cursor: "pointer", letterSpacing: "0.5px",
@@ -355,11 +387,11 @@ export default function Hilo() {
           const ci = siblings.findIndex(s => s.id === msg.id);
           return (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "6px 0 2px" }}>
-              <button onClick={() => { const p = siblings[(ci - 1 + siblings.length) % siblings.length]; setBranchSelections(s => ({ ...s, [parentId]: p.id })); }}
-                style={{ background: "transparent", border: "none", color: T.accent, fontSize: 18, cursor: "pointer", fontFamily: "'DM Mono', monospace", padding: "4px 8px" }}>‹</button>
+              <button onClick={(e) => { e.stopPropagation(); const p = siblings[(ci - 1 + siblings.length) % siblings.length]; setBranchSelections(s => ({ ...s, [parentId]: p.id })); }}
+                style={{ background: "transparent", border: "none", color: T.accent, fontSize: 22, cursor: "pointer", fontFamily: "'DM Mono', monospace", padding: "4px 12px", WebkitTapHighlightColor: "transparent" }}>‹</button>
               <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: T.accentMuted, letterSpacing: "0.5px" }}>rama {ci + 1}/{siblings.length}</span>
-              <button onClick={() => { const n = siblings[(ci + 1) % siblings.length]; setBranchSelections(s => ({ ...s, [parentId]: n.id })); }}
-                style={{ background: "transparent", border: "none", color: T.accent, fontSize: 18, cursor: "pointer", fontFamily: "'DM Mono', monospace", padding: "4px 8px" }}>›</button>
+              <button onClick={(e) => { e.stopPropagation(); const n = siblings[(ci + 1) % siblings.length]; setBranchSelections(s => ({ ...s, [parentId]: n.id })); }}
+                style={{ background: "transparent", border: "none", color: T.accent, fontSize: 22, cursor: "pointer", fontFamily: "'DM Mono', monospace", padding: "4px 12px", WebkitTapHighlightColor: "transparent" }}>›</button>
             </div>
           );
         })()}
@@ -368,32 +400,31 @@ export default function Hilo() {
           <div style={{
             position: "absolute", left: 28, top: showInsertButton ? -4 : -8,
             width: 2, height: showInsertButton ? 12 : 16,
-            background: `linear-gradient(to bottom, ${T.accentMuted}, ${T.accent})`, borderRadius: 1,
+            background: "linear-gradient(to bottom, " + T.accentMuted + ", " + T.accent + ")", borderRadius: 1,
           }} />
         )}
 
         <div
           data-msg-bubble={msg.id}
           onClick={(e) => {
+            e.stopPropagation();
             if (isTarget) {
-              e.stopPropagation();
               if (relocating) executeRelocate(msg.id);
               else if (linking) executeLink(msg.id);
               return;
             }
             if (!isEditing) {
-              e.stopPropagation();
               setSelectedMsg(prev => prev === msg.id ? null : msg.id);
             }
           }}
           style={{
             position: "relative", padding: "12px 16px", margin: "2px 0", borderRadius: 16,
             background: isFlashing ? T.accentDim : isSource ? T.linkDim : isEditing ? T.surfaceHover : isActive ? T.surfaceHover : T.surface,
-            border: `1px solid ${isFlashing ? T.accent : isSource ? T.link : isEditing ? T.accent : isActive ? T.borderLight : T.border}`,
+            border: "1px solid " + (isFlashing ? T.accent : isSource ? T.link : isEditing ? T.accent : isActive ? T.borderLight : T.border),
             transition: "all 0.3s ease",
             cursor: isTarget ? "pointer" : "default",
             opacity: isSelectingTarget && isSource ? 0.5 : 1,
-            outline: isTarget ? `2px solid ${relocating ? T.sage : T.link}` : "none",
+            outline: isTarget ? "2px solid " + (relocating ? T.sage : T.link) : "none",
             outlineOffset: -2,
             WebkitTapHighlightColor: "transparent",
           }}
@@ -418,7 +449,7 @@ export default function Hilo() {
               position: "absolute", left: -8, top: "50%", transform: "translateY(-50%)",
               width: 8, height: 8, borderRadius: "50%",
               background: index === 0 ? T.sage : index === arr.length - 1 ? T.accent : T.textMuted,
-              border: `2px solid ${T.bg}`, zIndex: 2,
+              border: "2px solid " + T.bg, zIndex: 2,
             }} />
           )}
 
@@ -432,7 +463,7 @@ export default function Hilo() {
                 autoFocus
                 style={{
                   width: "100%", minHeight: 60, padding: 10, background: T.bubble,
-                  border: `1px solid ${T.accent}`, borderRadius: 8, color: T.text,
+                  border: "1px solid " + T.accent, borderRadius: 8, color: T.text,
                   fontFamily: "'Crimson Pro', serif", fontSize: 16, lineHeight: 1.55,
                   resize: "vertical", outline: "none",
                 }} />
@@ -440,7 +471,7 @@ export default function Hilo() {
                 <button onClick={saveEdit}
                   style={{ padding: "6px 16px", borderRadius: 8, background: T.accent, color: T.bg, border: "none", fontSize: 13, fontFamily: "'DM Mono', monospace", cursor: "pointer", fontWeight: 600 }}>guardar</button>
                 <button onClick={() => { setEditingMsg(null); setEditText(""); }}
-                  style={{ padding: "6px 16px", borderRadius: 8, background: "transparent", color: T.textSecondary, border: `1px solid ${T.border}`, fontSize: 13, fontFamily: "'DM Mono', monospace", cursor: "pointer" }}>cancelar</button>
+                  style={{ padding: "6px 16px", borderRadius: 8, background: "transparent", color: T.textSecondary, border: "1px solid " + T.border, fontSize: 13, fontFamily: "'DM Mono', monospace", cursor: "pointer" }}>cancelar</button>
               </div>
             </div>
           ) : (
@@ -457,7 +488,7 @@ export default function Hilo() {
                       onClick={(e) => { e.stopPropagation(); setViewingImage(img); }}
                       style={{
                         borderRadius: 10, overflow: "hidden", cursor: "pointer",
-                        border: `1px solid ${T.border}`,
+                        border: "1px solid " + T.border,
                         maxWidth: msgImages.length === 1 ? "100%" : "calc(50% - 3px)",
                         flexGrow: msgImages.length === 1 ? 1 : 0,
                       }}>
@@ -510,13 +541,13 @@ export default function Hilo() {
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 {isInThread && getChildren(msg.id).length > 1 && (
                   <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: T.accent, background: T.accentDim, padding: "2px 8px", borderRadius: 8 }}>
-                    ⑂ {getChildren(msg.id).length}
+                    {"⑂ " + getChildren(msg.id).length}
                   </span>
                 )}
                 {!isInThread && replyCount > 0 && (
                   <button onClick={(e) => { e.stopPropagation(); openThread(msg.id); }}
                     style={{ background: T.sageDim, border: "none", borderRadius: 10, padding: "3px 12px", fontSize: 11, fontFamily: "'DM Mono', monospace", color: T.sage, cursor: "pointer", letterSpacing: "0.3px" }}>
-                    {replyCount} {replyCount === 1 ? "respuesta" : "respuestas"}
+                    {replyCount + (replyCount === 1 ? " respuesta" : " respuestas")}
                   </button>
                 )}
               </div>
@@ -524,36 +555,36 @@ export default function Hilo() {
           )}
 
           {isActive && !isEditing && !isSelectingTarget && (
-            <div data-msg-actions
+            <div data-msg-actions="true" onClick={(e) => e.stopPropagation()}
               style={{
                 position: "absolute", top: -16, right: 8, display: "flex", gap: 2,
                 background: T.bubble, borderRadius: 12, padding: "4px 5px",
-                border: `1px solid ${T.borderLight}`, boxShadow: "0 4px 16px rgba(0,0,0,0.4)", zIndex: 10,
+                border: "1px solid " + T.borderLight, boxShadow: "0 4px 16px rgba(0,0,0,0.4)", zIndex: 10,
               }}>
-              <ActionBtn icon="↩" label={isInThread ? "Rama" : "Responder"} onClick={(e) => { e.stopPropagation(); startReply(msg.id); }} />
+              <ActionBtn icon="↩" label={isInThread ? "Rama" : "Responder"} onClick={() => startReply(msg.id)} size={24} />
               {msg.replyTo && !isInThread && (
-                <ActionBtn icon="◎" label="Ver hilo" onClick={(e) => { e.stopPropagation(); openThread(msg.id); }} />
+                <ActionBtn icon="◎" label="Ver hilo" onClick={() => openThread(msg.id)} size={24} />
               )}
-              <ActionBtn icon="⤻" label="Reubicar" color={T.sage} onClick={(e) => { e.stopPropagation(); startRelocate(msg.id); }} />
-              <ActionBtn icon="⟶" label="Vincular" color={T.link} onClick={(e) => { e.stopPropagation(); startLink(msg.id); }} />
-              <ActionBtn icon="✎" label="Editar" onClick={(e) => { e.stopPropagation(); startEdit(msg.id); }} />
-              <ActionBtn icon="×" label="Borrar" danger onClick={(e) => { e.stopPropagation(); setDeleteConfirm(msg.id); }} />
+              <ActionBtn icon="⤻" label="Reubicar" color={T.sage} onClick={() => startRelocate(msg.id)} size={24} />
+              <ActionBtn icon="⟶" label="Vincular" color={T.link} onClick={() => startLink(msg.id)} size={18} />
+              <ActionBtn icon="✎" label="Editar" onClick={() => startEdit(msg.id)} size={24} />
+              <ActionBtn icon="×" label="Borrar" danger onClick={() => setDeleteConfirm(msg.id)} size={22} />
             </div>
           )}
 
           {isDeleting && (
-            <div onClick={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}
+            <div data-delete-confirm="true" onClick={(e) => e.stopPropagation()}
               style={{
-                position: "absolute", [index === 0 ? "bottom" : "top"]: index === 0 ? -48 : -48, right: 8,
+                position: "absolute", bottom: index === 0 ? -48 : undefined, top: index === 0 ? undefined : -48, right: 8,
                 background: T.bubble, borderRadius: 12,
-                padding: "8px 14px", border: `1px solid ${T.danger}`, boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
+                padding: "8px 14px", border: "1px solid " + T.danger, boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
                 zIndex: 20, display: "flex", alignItems: "center", gap: 10,
               }}>
               <span style={{ fontSize: 12, fontFamily: "'DM Mono', monospace", color: T.danger }}>¿borrar?</span>
               <button onClick={() => deleteMessage(msg.id)}
                 style={{ padding: "5px 12px", borderRadius: 8, background: T.danger, color: "#fff", border: "none", fontSize: 12, fontFamily: "'DM Mono', monospace", cursor: "pointer", fontWeight: 600 }}>sí</button>
               <button onClick={() => setDeleteConfirm(null)}
-                style={{ padding: "5px 12px", borderRadius: 8, background: "transparent", color: T.textSecondary, border: `1px solid ${T.border}`, fontSize: 12, fontFamily: "'DM Mono', monospace", cursor: "pointer" }}>no</button>
+                style={{ padding: "5px 12px", borderRadius: 8, background: "transparent", color: T.textSecondary, border: "1px solid " + T.border, fontSize: 12, fontFamily: "'DM Mono', monospace", cursor: "pointer" }}>no</button>
             </div>
           )}
         </div>
@@ -566,10 +597,10 @@ export default function Hilo() {
       width: "100%", height: "100dvh", background: T.bg,
       display: "flex", flexDirection: "column", fontFamily: "'Crimson Pro', serif",
       overflow: "hidden",
-      paddingTop: "env(safe-area-inset-top)", 
+      paddingTop: "env(safe-area-inset-top)",
     }}>
       <div style={{
-        padding: "14px 20px", borderBottom: `1px solid ${T.border}`,
+        padding: "14px 20px", borderBottom: "1px solid " + T.border,
         display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -580,19 +611,43 @@ export default function Hilo() {
           <h1 style={{ margin: 0, fontSize: 20, fontWeight: 500, color: T.text, letterSpacing: "-0.3px" }}>hilo</h1>
           {isInThread && (
             <span style={{ fontSize: 11, fontFamily: "'DM Mono', monospace", color: T.textMuted, background: T.accentDim, padding: "3px 10px", borderRadius: 6 }}>
-              {visibleMessages.length} notas
+              {visibleMessages.length + " notas"}
             </span>
           )}
         </div>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: T.textMuted, letterSpacing: "1px" }}>
-          {messages.length} notas total
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: T.textMuted, letterSpacing: "1px" }}>
+            {messages.length + " notas"}
+          </span>
+          <div style={{ position: "relative" }}>
+            <button data-menu="true" onClick={(e) => { e.stopPropagation(); setShowMenu(p => !p); }}
+              style={{ background: "transparent", border: "none", color: T.textSecondary, fontSize: 18, cursor: "pointer", padding: "4px", fontFamily: "'DM Mono', monospace", WebkitTapHighlightColor: "transparent" }}>⋮</button>
+            {showMenu && (
+              <div data-menu="true" onClick={(e) => e.stopPropagation()}
+                style={{
+                  position: "absolute", top: 32, right: 0, background: T.bubble,
+                  border: "1px solid " + T.borderLight, borderRadius: 12, padding: "6px 4px",
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.4)", zIndex: 50, minWidth: 150,
+                }}>
+                <button onClick={exportData}
+                  style={{ display: "block", width: "100%", textAlign: "left", background: "transparent", border: "none", color: T.text, padding: "8px 14px", fontSize: 13, fontFamily: "'DM Mono', monospace", cursor: "pointer", borderRadius: 8 }}>
+                  exportar notas
+                </button>
+                <button onClick={() => importInputRef.current?.click()}
+                  style={{ display: "block", width: "100%", textAlign: "left", background: "transparent", border: "none", color: T.text, padding: "8px 14px", fontSize: 13, fontFamily: "'DM Mono', monospace", cursor: "pointer", borderRadius: 8 }}>
+                  importar notas
+                </button>
+                <input ref={importInputRef} type="file" accept=".json" onChange={importData} style={{ display: "none" }} />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {isSelectingTarget && (
         <div style={{
           padding: "10px 16px", background: relocating ? T.sageDim : T.linkDim,
-          borderBottom: `1px solid ${relocating ? "rgba(122,158,126,0.3)" : "rgba(126,170,200,0.3)"}`,
+          borderBottom: "1px solid " + (relocating ? "rgba(122,158,126,0.3)" : "rgba(126,170,200,0.3)"),
           display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8,
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
@@ -602,7 +657,7 @@ export default function Hilo() {
             <span style={{ fontSize: 13, fontFamily: "'Crimson Pro', serif", fontStyle: "italic", color: T.textSecondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {getPreview(selectingSource)}
             </span>
-            <span style={{ fontSize: 11, fontFamily: "'DM Mono', monospace", color: T.textMuted, flexShrink: 0 }}>→ toca destino</span>
+            <span style={{ fontSize: 11, fontFamily: "'DM Mono', monospace", color: T.textMuted, flexShrink: 0 }}>toca destino</span>
           </div>
           <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
             {relocating && (
@@ -612,7 +667,7 @@ export default function Hilo() {
               </button>
             )}
             <button onClick={clearModes}
-              style={{ padding: "6px 14px", borderRadius: 8, background: "transparent", color: T.textMuted, border: `1px solid ${T.border}`, fontSize: 12, fontFamily: "'DM Mono', monospace", cursor: "pointer" }}>
+              style={{ padding: "6px 14px", borderRadius: 8, background: "transparent", color: T.textMuted, border: "1px solid " + T.border, fontSize: 12, fontFamily: "'DM Mono', monospace", cursor: "pointer" }}>
               cancelar
             </button>
           </div>
@@ -625,8 +680,7 @@ export default function Hilo() {
           <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, opacity: 0.5 }}>
             <span style={{ fontSize: 48, lineHeight: 1, filter: "grayscale(0.5)" }}>🧵</span>
             <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: T.textMuted, textAlign: "center", lineHeight: 1.6 }}>
-              escribe tu primera nota<br />
-              <span style={{ opacity: 0.6 }}>las ideas se conectan respondiendo a otras</span>
+              escribe tu primera nota
             </p>
           </div>
         ) : visibleMessages.map((msg, i, arr) => renderMessage(msg, i, arr))}
@@ -634,13 +688,13 @@ export default function Hilo() {
       </div>
 
       {!isSelectingTarget && (
-        <div style={{ padding: "10px 12px 10px", borderTop: `1px solid ${T.border}`, flexShrink: 0, background: T.bg }}>
+        <div style={{ padding: "10px 12px 10px", borderTop: "1px solid " + T.border, flexShrink: 0, background: T.bg, paddingBottom: "max(10px, env(safe-area-inset-bottom))" }}>
           {(replyingTo || insertBeforeId) && (
             <div style={{
               display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8,
               padding: "6px 12px", borderRadius: 10,
               background: insertBeforeId ? T.sageDim : T.accentDim,
-              border: `1px solid ${insertBeforeId ? "rgba(122,158,126,0.3)" : "rgba(200,149,108,0.3)"}`,
+              border: "1px solid " + (insertBeforeId ? "rgba(122,158,126,0.3)" : "rgba(200,149,108,0.3)"),
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, overflow: "hidden" }}>
                 <span style={{ fontSize: 11, fontFamily: "'DM Mono', monospace", color: insertBeforeId ? T.sage : T.accent, flexShrink: 0 }}>
@@ -659,7 +713,7 @@ export default function Hilo() {
               {pendingFiles.map(f => (
                 <div key={f.id} style={{
                   position: "relative", borderRadius: 10, overflow: "hidden",
-                  border: `1px solid ${T.borderLight}`, background: T.surface,
+                  border: "1px solid " + T.borderLight, background: T.surface,
                 }}>
                   {f.type === "application/pdf" ? (
                     <div style={{ padding: "8px 12px", display: "flex", alignItems: "center", gap: 6 }}>
@@ -685,7 +739,7 @@ export default function Hilo() {
               multiple onChange={handleFileSelect} style={{ display: "none" }} />
             <button onClick={() => fileInputRef.current?.click()}
               style={{
-                width: 44, height: 44, borderRadius: "50%", border: `1px solid ${T.borderLight}`,
+                width: 44, height: 44, borderRadius: "50%", border: "1px solid " + T.borderLight,
                 background: T.surface, color: T.textSecondary, fontSize: 18,
                 cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center",
                 justifyContent: "center", WebkitTapHighlightColor: "transparent",
@@ -693,7 +747,7 @@ export default function Hilo() {
             <textarea ref={inputRef} value={inputText} onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyDown} placeholder="escribe una nota..." rows={1}
               style={{
-                flex: 1, padding: "12px 16px", borderRadius: 24, border: `1px solid ${T.borderLight}`,
+                flex: 1, padding: "12px 16px", borderRadius: 24, border: "1px solid " + T.borderLight,
                 background: T.surface, color: T.text, fontFamily: "'Crimson Pro', serif", fontSize: 16,
                 lineHeight: 1.4, resize: "none", outline: "none", maxHeight: 120, minHeight: 44,
                 WebkitAppearance: "none",
@@ -736,7 +790,7 @@ export default function Hilo() {
               <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 14 }}>{viewingImage.name}</span>
               <br />
               <a href={viewingImage.data} download={viewingImage.name}
-                onClick={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
                 style={{
                   display: "inline-block", marginTop: 12, padding: "10px 24px",
                   borderRadius: 10, background: T.accent, color: T.bg,
@@ -745,7 +799,7 @@ export default function Hilo() {
             </div>
           ) : (
             <img src={viewingImage.data} alt={viewingImage.name}
-              onClick={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
               style={{ maxWidth: "92%", maxHeight: "90%", objectFit: "contain", borderRadius: 8 }} />
           )}
         </div>
@@ -754,13 +808,14 @@ export default function Hilo() {
   );
 }
 
-function ActionBtn({ icon, label, onClick, danger, color }) {
+function ActionBtn({ icon, label, onClick, danger, color, size }) {
+  const s = size || 18;
   return (
-    <button onClick={onClick} title={label}
+    <button onClick={(e) => { e.stopPropagation(); onClick(e); }} title={label}
       style={{
         background: "transparent", border: "none", borderRadius: 8,
         width: 42, height: 38, display: "flex", alignItems: "center", justifyContent: "center",
-        cursor: "pointer", fontSize: icon === "×" ? 22 : icon === "⟶" ? 18 : 24,
+        cursor: "pointer", fontSize: s,
         color: color || (danger ? T.danger : T.textSecondary),
         fontFamily: "'DM Mono', monospace",
         WebkitTapHighlightColor: "transparent",
