@@ -108,6 +108,38 @@ export default function Hilo() {
     return false;
   }, [messages]);
 
+
+  const getBadgeTarget = useCallback((msgId) => {
+    const map = new Map(messages.map(m => [m.id, m]));
+    const msg = map.get(msgId);
+    if (!msg || !msg.replyTo) return null;
+    let cur = msg.replyTo;
+    let childOnPath = msgId;
+    const visited = new Set();
+    while (cur && !visited.has(cur)) {
+      visited.add(cur);
+      const m = map.get(cur);
+      if (!m) break;
+      const children = messages.filter(x => x.replyTo === cur);
+      if (children.length > 1) {
+        if (childOnPath === msgId) return cur;
+        return childOnPath;
+      }
+      childOnPath = cur;
+      cur = m.replyTo;
+    }
+    cur = msgId;
+    const v2 = new Set();
+    while (cur && !v2.has(cur)) {
+      v2.add(cur);
+      const m = map.get(cur);
+      if (!m) break;
+      if (!m.replyTo) return cur;
+      cur = m.replyTo;
+    }
+    return msgId;
+  }, [messages]);
+
   const visibleMessages = useMemo(() => {
     if (threadViewId) return getThreadChain(threadViewId);
     return [...messages].sort((a, b) => a.timestamp - b.timestamp);
@@ -440,7 +472,7 @@ export default function Hilo() {
               <span style={{
                 fontSize: 13, color: T.accentMuted, fontFamily: "'Crimson Pro', serif", fontStyle: "italic",
                 overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-              }}>{getPreview(msg.replyTo)}</span>
+              }}>{getPreview(getBadgeTarget(msg.id))}</span>
             </div>
           )}
 
