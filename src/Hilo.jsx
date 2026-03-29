@@ -155,15 +155,7 @@ export default function Hilo() {
     if (flashId) { const t = setTimeout(() => setFlashId(null), 1200); return () => clearTimeout(t); }
   }, [flashId]);
 
-  useEffect(() => {
-    const handler = () => {
-      setSelectedMsg(null);
-      setDeleteConfirm(null);
-      setShowMenu(false);
-    };
-    document.addEventListener("click", handler);
-    return () => document.removeEventListener("click", handler);
-  }, []);
+
 
   useEffect(() => {
     const handler = (e) => {
@@ -419,10 +411,10 @@ export default function Hilo() {
           const ci = siblings.findIndex(s => s.id === msg.id);
           return (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "6px 0 2px" }}>
-              <button onPointerUp={(e) => { e.stopPropagation(); e.preventDefault(); const p = siblings[(ci - 1 + siblings.length) % siblings.length]; setBranchSelections(s => ({ ...s, [parentId]: p.id })); }}
+              <button onClick={(e) => { e.stopPropagation(); const p = siblings[(ci - 1 + siblings.length) % siblings.length]; setBranchSelections(s => ({ ...s, [parentId]: p.id })); }}
                 style={{ background: "transparent", border: "none", color: T.accent, fontSize: 22, cursor: "pointer", fontFamily: "'DM Mono', monospace", padding: "4px 12px", WebkitTapHighlightColor: "transparent" }}>‹</button>
               <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: T.accentMuted, letterSpacing: "0.5px" }}>rama {ci + 1}/{siblings.length}</span>
-              <button onPointerUp={(e) => { e.stopPropagation(); e.preventDefault(); const n = siblings[(ci + 1) % siblings.length]; setBranchSelections(s => ({ ...s, [parentId]: n.id })); }}
+              <button onClick={(e) => { e.stopPropagation(); const n = siblings[(ci + 1) % siblings.length]; setBranchSelections(s => ({ ...s, [parentId]: n.id })); }}
                 style={{ background: "transparent", border: "none", color: T.accent, fontSize: 22, cursor: "pointer", fontFamily: "'DM Mono', monospace", padding: "4px 12px", WebkitTapHighlightColor: "transparent" }}>›</button>
             </div>
           );
@@ -707,6 +699,7 @@ export default function Hilo() {
       )}
 
       <div ref={listRef}
+        onClick={() => { setSelectedMsg(null); setDeleteConfirm(null); setShowMenu(false); }}
         style={{ flex: 1, overflowY: "auto", padding: "16px 12px 8px", display: "flex", flexDirection: "column", gap: 4, WebkitOverflowScrolling: "touch" }}>
         {visibleMessages.length === 0 ? (
           <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, opacity: 0.5 }}>
