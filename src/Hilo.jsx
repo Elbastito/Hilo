@@ -419,10 +419,10 @@ export default function Hilo() {
           const ci = siblings.findIndex(s => s.id === msg.id);
           return (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "6px 0 2px" }}>
-              <button onClick={(e) => { e.stopPropagation(); e.nativeEvent.stopImmediatePropagation(); const p = siblings[(ci - 1 + siblings.length) % siblings.length]; setBranchSelections(s => ({ ...s, [parentId]: p.id })); }}
+              <button onPointerUp={(e) => { e.stopPropagation(); e.preventDefault(); const p = siblings[(ci - 1 + siblings.length) % siblings.length]; setBranchSelections(s => ({ ...s, [parentId]: p.id })); }}
                 style={{ background: "transparent", border: "none", color: T.accent, fontSize: 22, cursor: "pointer", fontFamily: "'DM Mono', monospace", padding: "4px 12px", WebkitTapHighlightColor: "transparent" }}>‹</button>
               <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: T.accentMuted, letterSpacing: "0.5px" }}>rama {ci + 1}/{siblings.length}</span>
-              <button onClick={(e) => { e.stopPropagation(); e.nativeEvent.stopImmediatePropagation(); const n = siblings[(ci + 1) % siblings.length]; setBranchSelections(s => ({ ...s, [parentId]: n.id })); }}
+              <button onPointerUp={(e) => { e.stopPropagation(); e.preventDefault(); const n = siblings[(ci + 1) % siblings.length]; setBranchSelections(s => ({ ...s, [parentId]: n.id })); }}
                 style={{ background: "transparent", border: "none", color: T.accent, fontSize: 22, cursor: "pointer", fontFamily: "'DM Mono', monospace", padding: "4px 12px", WebkitTapHighlightColor: "transparent" }}>›</button>
             </div>
           );
