@@ -149,7 +149,7 @@ export default function Hilo() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [visibleMessages.length]);
 
-  useEffect(() => { inputRef.current?.focus(); }, [replyingTo, insertBeforeId, threadViewId]);
+  useEffect(() => { inputRef.current?.focus(); }, [replyingTo, insertBeforeId]);
 
   useEffect(() => {
     if (flashId) { const t = setTimeout(() => setFlashId(null), 1200); return () => clearTimeout(t); }
